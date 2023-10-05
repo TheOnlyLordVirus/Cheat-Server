@@ -32,6 +32,6 @@ namespace CheatServer.Database
 
 
         [Column("AUTH_END_DATE")]
-        public DateTime AUTH_END_DATE { get; set; }
+        public DateTime AuthenticationEndDate { get; set; }
     }
 }

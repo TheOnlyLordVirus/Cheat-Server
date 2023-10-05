@@ -1,6 +1,7 @@
 ﻿using CheatServer.Transports;
+
 using Newtonsoft.Json;
-using System.IO;
+
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,117 +9,133 @@ namespace CheatServer.Utilitys.Security
 {
     public static class Security
     {
-        /*
-            'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',  'p',  'q',
-            'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z',  'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',
-            'I',  'J',  'K',  'L',  'M',  'N',  'O',  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y',
-            'Z',  '~',  '`',  '!',  '@',  '#',  '$',  '%',  '^',  '&',  '*',  '(',  ')',  '_',  '-',  '+',  '=',
-            '{',  '[',  '}',  ']',  '|',  '\\', ':',  ';',  '"',  '\'', '<',  ',',  '>',  '.',  '?',  '/'
-        */
-        private static readonly Dictionary<char, char> _substitutionCypherChars = new Dictionary<char, char>
+        // TODO: add numbers to this, add more chars to each value.
+        private static readonly Dictionary<char, string> _substitutionCypherChars = new() 
         {
-            { 'a', '=' }, { 'b', 'e' }, { 'c', '^' },  { 'd', 'B' },  { 'e', 'R' },
-            { 'f', 'n' }, { 'g', 'f' }, { 'h', 'P' },  { 'i', '$' },  { 'j', '>' },
-            { 'k', 'z' }, { 'l', ']' }, { 'm', ';' },  { 'n', 'd' },  { 'o', 'u' },
-            { 'p', '%' }, { 'q', ',' }, { 'r', '|' },  { 's', 'F' },  { 't', 'm' },
-            { 'u', 'Z' }, { 'v', 'Q' }, { 'w', '}' },  { 'x', 'i' },  { 'y', 't' },
-            { 'z', 'N' }, { 'A', 'W' }, { 'B', 'c' },  { 'C', '-' },  { 'D', '+' },
-            { 'E', '[' }, { 'F', 'x' }, { 'G', '@' },  { 'H', '~' },  { 'I', '&' },
-            { 'J', 'p' }, { 'K', '_' }, { 'L', '{' },  { 'M', '\'' }, { 'N', '*' },
-            { 'O', '"' }, { 'P', 'G' }, { 'Q', 'g' },  { 'R', '<' },  { 'S', 'M' },
-            { 'T', 'X' }, { 'U', 'S' }, { 'V', 'y' },  { 'W', '!' },  { 'X', 'r' },
-            { 'Y', 'J' }, { 'Z', '?' }, { '~', 'C' },  { '`', 'L' },  { '!', 'v' },
-            { '@', 'V' }, { '#', 'A' }, { '$', 'w' },  { '%', ')' },  { '^', 'E' },
-            { '&', 'a' }, { '*', 'q' }, { '(', 'o' },  { ')', 'b' },  { '_', 'Y' },
-            { '-', '`' }, { '+', 'h' }, { '=', '\\' }, { '{', '(' },  { '[', ':' },
-            { '}', 'T' }, { ']', 'j' }, { '|', 'H' },  { '\\', '#' }, { ':', 'D' },
-            { ';', 'K' }, { '"', '/' }, { '\'', 'O' }, { '<', 'I' },  { ',', 'U' },
-            { '>', 'k' }, { '.', 's' }, { '?', 'l' },  { '/', '.' },
+            { 'a', "=A" }, { 'b', "e" }, { 'c', "^" },  { 'd', "B" },  { 'e', "R" },
+            { 'f', "n2" }, { 'g', "f" }, { 'h', "P" },  { 'i', "$" },  { 'j', ">" },
+            { 'k', "z32" }, { 'l', "]" }, { 'm', ";" },  { 'n', "d" },  { 'o', "u" },
+            { 'p', "%a" }, { 'q', "," }, { 'r', "|" },  { 's', "F" },  { 't', "m" },
+            { 'u', "Z43" }, { 'v', "Q" }, { 'w', "}" },  { 'x', "i" },  { 'y', "t" },
+            { 'z', "N00" }, { 'A', "W" }, { 'B', "c" },  { 'C', "-" },  { 'D', "+" },
+            { 'E', "[9a" }, { 'F', "x" }, { 'G', "@" },  { 'H', "~" },  { 'I', "&" },
+            { 'J', "p5" }, { 'K', "_" }, { 'L', "{" },  { 'M', "\'" }, { 'N', "*" },
+            { 'O', "\"\"a" }, { 'P', "G" }, { 'Q', "g" },  { 'R', "<" },  { 'S', "M" },
+            { 'T', "X" }, { 'U', "S" }, { 'V', "y" },  { 'W', "!" },  { 'X', "r" },
+            { 'Y', "J" }, { 'Z', "?" }, { '~', "C" },  { '`', "L" },  { '!', "v" },
+            { '@', "V" }, { '#', "A" }, { '$', "w" },  { '%', ")" },  { '^', "E" },
+            { '&', "a" }, { '*', "q" }, { '(', "o" },  { ')', "b" },  { '_', "Y" },
+            { '-', "`" }, { '+', "h" }, { '=', "\\" }, { '{', "(" },  { '[', ":" },
+            { '}', "T" }, { ']', "j" }, { '|', "H" },  { '\\', "#" }, { ':', "D" },
+            { ';', "K" }, { '"', "/" }, { '\'', "O" }, { '<', "I" },  { ',', "U" },
+            { '>', "k" }, { '.', "s" }, { '?', "l" },  { '/', "." },
         };
 
         private static readonly Aes _aes = Aes.Create();
         private static readonly SHA256 _sha256 = SHA256.Create();
         private static readonly SHA512 _passwordHasher = SHA512.Create();
 
-        private static readonly ICryptoTransform _aesEncryptor = _aes.CreateEncryptor();
-        private static readonly ICryptoTransform _aesDecryptor = _aes.CreateDecryptor();
-
-        // TODO: Get and set encryption and decryption key from from RSA Key.
+        // TODO: Get this from IConfiguration?
         private static readonly string _encryptionKey = "Cba321";
-        private static readonly byte[] _encryptIV = new byte[32]
+        private static readonly byte[] _encryptIV = new byte[16]
         {
             0x19, 0xe7, 0x22, 0xd4, 0xc5, 0x54, 0x92, 0xd3,
-            0xd8, 0xd1, 0xc2, 0xca, 0x05, 0x5b, 0x45, 0xdc,
-            0xce, 0x39, 0xdc, 0x0e, 0x2d, 0x05, 0x6a, 0xb4,
-            0x64, 0x67, 0xbc, 0x32, 0xf8, 0x06, 0xf3, 0xeb
+            0xd8, 0xd1, 0xc2, 0xca, 0x05, 0x5b, 0x45, 0xdc
         };
 
         private static readonly string _decryptionKey = "Abc123";
-        private static readonly byte[] _decryptIV = new byte[32]
+        private static readonly byte[] _decryptIV = new byte[16]
         {
             0x86, 0xc0, 0x71, 0x97, 0x16, 0x9a, 0x25, 0x7b,
-            0x70, 0xf0, 0x9c, 0x3e, 0x8f, 0x61, 0x4d, 0xb4,
-            0xbf, 0xdc, 0xb7, 0xdb, 0x7e, 0xc6, 0x87, 0x06, 
-            0x0e, 0xfd, 0x90, 0xae, 0x22, 0x5a, 0xc0, 0x0a
+            0x70, 0xf0, 0x9c, 0x3e, 0x8f, 0x61, 0x4d, 0xb4
         };
 
-        public static bool TryDecrypt<TRequest>(this Request encryptedRequest, out TRequest? request)
+        public static async Task<Response<TResponse>> EncyrptAsync<TResponse>(
+            this Response<TResponse> unencryptedResponse, 
+            CancellationToken cancellationToken = default)
         {
-            request = default;
-            bool result = true;
+            Response<TResponse> encryptedResponse = unencryptedResponse;
+            string encryptedResponseData = string.Empty;
             string[] errors = Array.Empty<string>();
 
             try
             {
-                string unencryptedString = Security.DecryptString(encryptedRequest.Data);
-                request = JsonConvert.DeserializeObject<TRequest?>(unencryptedString);
+                string serializedResponse = JsonConvert.SerializeObject(unencryptedResponse.ResponseObject);
+                encryptedResponseData = await Internal_AesEncryptStringAsync(serializedResponse, cancellationToken)
+                    .ConfigureAwait(false);
 
-                if(request is null)
-                    result = false;
+                if (encryptedResponse.Equals(string.Empty))
+                    throw new Exception("Failed to serialize and encrypt this response!");
+
+                encryptedResponse = new Response<TResponse>(encryptedResponseData);
             }
 
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                result = false;
                 errors = new string[]
                 {
                     string.Concat("Message: ", ex.Message),
                     string.Concat("Inner Exception: ", ex.InnerException)
                 };
+
+                encryptedResponse = new Response<TResponse>(errors);
             }
 
-            return result;
+            finally
+            {
+                // Log request and log any errors in the database to monitor what data people are sending.
+            }
+
+            return encryptedResponse;
         }
 
-        public static string DecryptString(string encryptedText)
+        public static async Task<Request<TRequest>> DecryptAsync<TRequest>(
+            this Request<TRequest> encryptedRequest, 
+            CancellationToken cancellationToken = default)
         {
-            string removedHmac = Task.Run(async () => await Internal_DecryptHMAC(encryptedText)).Result;
-            string decrypted = Task.Run(async () => await Internal_AesDecryptString(encryptedText)).Result;
+            TRequest? unecryptedRequestObject = default;
+            Request<TRequest>? unecryptedRequest = default;
+            string[] errors = Array.Empty<string>();
 
-            return decrypted;
+            try
+            {
+                if (string.IsNullOrEmpty(encryptedRequest?.EncryptedData))
+                    throw new Exception("The EncryptedRequest data was null or empty!");
+
+                string unencryptedString = await Internal_AesDecryptStringAsync(encryptedRequest.EncryptedData!, cancellationToken)
+                    .ConfigureAwait(false);
+
+                unecryptedRequestObject = JsonConvert.DeserializeObject<TRequest?>(unencryptedString!);
+
+                if (unecryptedRequestObject is null)
+                    throw new Exception("Failed to deserialize and decrypt this request!");
+
+                unecryptedRequest = new Request<TRequest>(unecryptedRequestObject);
+            }
+
+            catch(Exception ex)
+            {
+                errors = new string[]
+                {
+                    string.Concat("Message: ", ex.Message),
+                    string.Concat("Inner Exception: ", ex.InnerException)
+                };
+
+                unecryptedRequest = new Request<TRequest>(errors);
+            }
+
+            finally
+            {
+                // Log request and log any errors in the database to monitor what data people are sending.
+            }
+
+            return unecryptedRequest;
         }
 
-        public static string HashPassword(string password)
-        {
-            byte[] hashedPassword = _passwordHasher
-                .ComputeHash
-                (
-                    Encoding.UTF8.GetBytes
-                    (
-                        Internal_SubstitutionCypher
-                        (
-                            Internal_FilterChars(password)
-                        )
-                    )
-                );
-
-            return Convert.ToBase64String(hashedPassword);
-        }
-
-        private static async Task<string> Internal_AesDecryptString(string encryptedText)
+        private static async Task<string> Internal_AesDecryptStringAsync(string encryptedText, CancellationToken cancellationToken = default)
         {
             byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
-            string decryptedText;
+            string decryptedText = string.Empty;
 
             byte[] key = _sha256.ComputeHash(Encoding.ASCII.GetBytes(_decryptionKey));
             _aes.Mode = CipherMode.CBC;
@@ -127,12 +144,12 @@ namespace CheatServer.Utilitys.Security
             _aes.Padding = PaddingMode.PKCS7;
 
             using MemoryStream memoryStream = new MemoryStream();
-            using CryptoStream cryptoStream = new CryptoStream(memoryStream, _aesDecryptor, CryptoStreamMode.Write);
+            using CryptoStream cryptoStream = new CryptoStream(memoryStream, _aes.CreateDecryptor(), CryptoStreamMode.Write);
 
             try
             {
-                await cryptoStream.WriteAsync(encryptedBytes, 0, encryptedBytes.Length);
-                await cryptoStream.FlushFinalBlockAsync();
+                await cryptoStream.WriteAsync(encryptedBytes, 0, encryptedBytes.Length, cancellationToken);
+                await cryptoStream.FlushFinalBlockAsync(cancellationToken);
 
                 byte[] decryptedBytes = memoryStream.ToArray();
 
@@ -148,7 +165,7 @@ namespace CheatServer.Utilitys.Security
             return decryptedText;
         }
 
-        private static async Task<string> Internal_AesEncryptString(string plainText)
+        private static async Task<string> Internal_AesEncryptStringAsync(string plainText, CancellationToken cancellationToken = default)
         {
             string encryptedText;
 
@@ -159,13 +176,13 @@ namespace CheatServer.Utilitys.Security
             _aes.Padding = PaddingMode.PKCS7;
 
             using MemoryStream memoryStream = new MemoryStream();
-            using CryptoStream cryptoStream = new CryptoStream(memoryStream, _aesEncryptor, CryptoStreamMode.Write);
+            using CryptoStream cryptoStream = new CryptoStream(memoryStream, _aes.CreateEncryptor(), CryptoStreamMode.Write);
 
             try
             {
                 byte[] plainBytes = Encoding.ASCII.GetBytes(plainText);
-                await cryptoStream.WriteAsync(plainBytes, 0, plainBytes.Length);
-                await cryptoStream.FlushFinalBlockAsync();
+                await cryptoStream.WriteAsync(plainBytes, 0, plainBytes.Length, cancellationToken);
+                await cryptoStream.FlushFinalBlockAsync(cancellationToken);
 
                 byte[] cipherBytes = memoryStream.ToArray();
 
@@ -181,39 +198,49 @@ namespace CheatServer.Utilitys.Security
             return encryptedText;
         }
 
-        private static async Task<string> Internal_EncryptHMAC()
+        public static bool HashPassword(string password, out string passwordHashAsBase64)
         {
-            return string.Empty;
+            passwordHashAsBase64 = string.Empty;
+            Span<byte> hashedPassword = stackalloc byte[64];
+
+            if (!Internal_HashPassword(password, hashedPassword, out int bytesWritten))
+                return false;
+
+            hashedPassword = hashedPassword.Slice(0, bytesWritten);
+
+            passwordHashAsBase64 = Convert.ToBase64String(hashedPassword);
+
+            return true;
         }
 
-        private static async Task<string> Internal_DecryptHMAC(string cypherText)
+        private static void Internal_SubstitutionCypher(ReadOnlySpan<char> password, Span<char> passwordOutput, out int length)
         {
-            return string.Empty;
-        }
-
-        private static string Internal_FilterChars(ReadOnlySpan<char> text)
-        {
-            StringBuilder sb = new StringBuilder();
-
-            for(int i = 0; i < text.Length; i++)
+            length = password.Length;
+            int index = 0;
+            for (var i = 0; i < password.Length; i++)
             {
-                if (_substitutionCypherChars.ContainsKey(text[i]))
-                    sb.Append(text[i]);
+                var current = password[i];
+                if (!_substitutionCypherChars.ContainsKey(current))
+                    continue;
+
+                ReadOnlySpan<char> replaceValue = _substitutionCypherChars[current];
+                replaceValue.CopyTo(passwordOutput.Slice(index, replaceValue.Length));
+                index += replaceValue.Length;
             }
 
-            return sb.ToString();
+            length = index;
         }
 
-        private static string Internal_SubstitutionCypher(ReadOnlySpan<char> text)
+        private static bool Internal_HashPassword(string password, Span<byte> result, out int bytesWritten)
         {
-            StringBuilder sb = new StringBuilder();
+            Span<char> outputPassword = stackalloc char[128];
+            Span<byte> outputBytes = stackalloc byte[128];
 
-            foreach(char c in text)
-            {
-                sb.Append(_substitutionCypherChars[c]);
-            }
+            Internal_SubstitutionCypher(password, outputPassword, out var length);
 
-            return sb.ToString();
+            var utfBytesWritten = Encoding.UTF8.GetBytes(outputPassword[..length], outputBytes);
+
+            return _passwordHasher.TryComputeHash(outputBytes[..utfBytesWritten], result, out bytesWritten);
         }
     }
 }

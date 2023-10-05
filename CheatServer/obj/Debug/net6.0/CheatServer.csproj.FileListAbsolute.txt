@@ -70,3 +70,8 @@ C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\refint\Che
 C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\CheatServer.pdb
 C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\CheatServer.genruntimeconfig.cache
 C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\ref\CheatServer.dll
+C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\staticwebassets\msbuild.CheatServer.Microsoft.AspNetCore.StaticWebAssets.props
+C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\staticwebassets\msbuild.build.CheatServer.props
+C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\staticwebassets\msbuild.buildMultiTargeting.CheatServer.props
+C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\staticwebassets\msbuild.buildTransitive.CheatServer.props
+C:\Users\TheNe\source\repos\Cheat-Server\CheatServer\obj\Debug\net6.0\staticwebassets.pack.json

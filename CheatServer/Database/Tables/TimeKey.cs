@@ -18,7 +18,6 @@ namespace CheatServer.Database
         [ForeignKey(nameof(GameCheatId))]
         public CheatBinary CheatBinary { get; set; }
 
-
         [Required(ErrorMessage = "The 'TIME_VALUE' field cannot be null or empty.")]
         [Column("TIME_VALUE")]
         public Int32 TimeValue { get; set; }

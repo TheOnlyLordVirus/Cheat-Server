@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using CheatServer.Utilitys.Security;
 using Microsoft.EntityFrameworkCore;
+
+using CheatServer.Utilitys.Security;
 using CheatServer.Database;
 using CheatServer.Transports;
 
@@ -28,40 +29,47 @@ namespace CheatServer.Controllers
         [HttpPost("Input")]
         public async Task<IActionResult> UserRequestManager(
             [FromServices] DatabaseContext databaseContext,
-            [FromBody] Request request,
+            [FromBody] EncryptedRequest request,
             CancellationToken cancellationToken)
         {
             ushort statusCode = 500;
-            Response<UserResponse> response = new Response<UserResponse>();
+            EncryptedResponse? response = default;
+            Response<UserResponse>? userResponse = default;
+            Request<UserRequest>? userRequest = default;
 
             try
             {
-                if (!request.TryDecrypt(out UserRequest? serializedRequest))
+                userRequest = new Request<UserRequest>(request.EncryptedData);
+                userRequest = await userRequest.DecryptAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (userRequest.HasErrors)
+                    throw new Exception("Failed to decrypt request!");
+
+                userResponse = await CommandFunctions[userRequest!.RequestObject!.UserCommand]
+                    (databaseContext, userRequest!.RequestObject!, cancellationToken);
+
+                if (userResponse.HasErrors)
+                    throw new Exception("Response failed from server!");
+
+                userResponse = await userResponse.EncyrptAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (userResponse.HasErrors)
+                    throw new Exception("Response failed from server!");
+
+                response = new EncryptedResponse()
                 {
-                    statusCode = 418;
-                    throw new Exception("Invalid Request!");
-                }
-
-                response = await Task.Run(() => CommandFunctions[serializedRequest!.UserCommand](databaseContext, serializedRequest!, cancellationToken));
-
-                if (response.HasErrors)
-                    throw new Exception("One or more errors have been thrown while executing command!");
+                    EncryptedData = userResponse.EncryptedData ?? string.Empty
+                };
 
                 statusCode = 200;
             }
 
             catch (Exception ex)
             {
-                List<string> errorAppender = new List<string>();
-
-                errorAppender.Add(Security.EncryptString(string.Concat("Command parser exception: ", ex.Message)));
-
-                if(response.ErrorMessages is not null)
-                    errorAppender.AddRange(response.ErrorMessages);
-
-                response.ErrorMessages = errorAppender.ToArray();
-
-                return StatusCode(statusCode, response);
+                statusCode = 418;
+                return StatusCode(statusCode, string.Empty);
             }
 
             finally
@@ -78,7 +86,7 @@ namespace CheatServer.Controllers
             UserRequest request,
             CancellationToken cancellationToken)
         {
-            Response<UserResponse> userResponse = new Response<UserResponse>();
+            Response<UserResponse>? userResponse = default;
             string[] errors = Array.Empty<string>();
 
             try
@@ -109,11 +117,14 @@ namespace CheatServer.Controllers
                 if (checkEntity is not null)
                     throw new Exception("This user email is already taken!");
 
+                if (!Security.HashPassword(request.Password, out string passwordHash))
+                    throw new Exception("Failed to hash password!");
+
                 User newUser = new User()
                 {
                     Name = request.Name,
                     Email = request.Email,
-                    Password = Security.HashPassword(request.Password),
+                    Password = passwordHash,
                     CreationDate = DateTime.UtcNow,
                     RegistrationIp = ipAddress,
                     RecentIp = ipAddress,
@@ -172,7 +183,7 @@ namespace CheatServer.Controllers
             UserRequest request,
             CancellationToken cancellationToken)
         {
-            Response<UserResponse> userResponse = new Response<UserResponse>();
+            Response<UserResponse>? userResponse = default;
             string[] errors = Array.Empty<string>();
 
             try
@@ -181,7 +192,8 @@ namespace CheatServer.Controllers
                     String.IsNullOrEmpty(request.Password))
                     throw new Exception("One or more of the requested feilds were null.");
 
-                string passwordHash = Security.HashPassword(request.Password);
+                if (!Security.HashPassword(request.Password, out string passwordHash))
+                    throw new Exception("Failed to hash password!");
 
                 User? checkEntity = await databaseContext
                     .Users

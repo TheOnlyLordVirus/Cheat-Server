@@ -1,21 +1,15 @@
 using CheatServer.Database;
+
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Load configuration.
-builder.Host.ConfigureAppConfiguration
-(
-    options =>
-    {
-        options.AddJsonFile("appsettings.json");
+builder.Configuration.AddJsonFile("appsettings.json").AddUserSecrets<Program>();
 
-        #if DEBUG
-            options.AddUserSecrets<Program>();
-        #endif
-    }
-);
+#if DEBUG
+builder.Configuration.AddUserSecrets<Program>();
+#endif
 
 // Add services to the container.
 builder.Services.AddControllers();

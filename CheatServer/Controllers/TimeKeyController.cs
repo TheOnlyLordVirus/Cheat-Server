@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+
 using CheatServer.Utilitys.Security;
-using Microsoft.EntityFrameworkCore;
 using CheatServer.Database;
 using CheatServer.Transports;
+using Microsoft.EntityFrameworkCore;
 
 namespace CheatServer.Controllers
 {
@@ -17,7 +18,7 @@ namespace CheatServer.Controllers
         {
             CommandFunctions = new ()
             {
-                { TimeKeyCommand.Create, CreateNewKey },
+                //{ TimeKeyCommand.Create, CreateNewKey },
                 { TimeKeyCommand.Redeem, RedeemKey }
             };
         }
@@ -28,40 +29,47 @@ namespace CheatServer.Controllers
         [HttpPost("Input")]
         public async Task<IActionResult> UserRequestManager(
             [FromServices] DatabaseContext databaseContext,
-            [FromBody] Request request,
+            [FromBody] EncryptedRequest request,
             CancellationToken cancellationToken)
         {
             ushort statusCode = 500;
-            Response<TimeKeyResponse> response = new Response<TimeKeyResponse>();
+            EncryptedResponse? response = default;
+            Response<TimeKeyResponse>? timeKeyResponse = default;
+            Request<TimeKeyRequest>? timeKeyRequest = default;
 
             try
             {
-                if (!request.TryDecrypt(out TimeKeyRequest? serializedRequest))
+                timeKeyRequest = new Request<TimeKeyRequest>(request.EncryptedData);
+                timeKeyRequest = await timeKeyRequest.DecryptAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (timeKeyRequest.HasErrors)
+                    throw new Exception("Failed to decrypt request!");
+
+                timeKeyResponse = await CommandFunctions[timeKeyRequest!.RequestObject!.Command]
+                    (databaseContext, timeKeyRequest!.RequestObject!, cancellationToken);
+
+                if (timeKeyResponse.HasErrors)
+                    throw new Exception("Response failed from server!");
+
+                timeKeyResponse = await timeKeyResponse.EncyrptAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (timeKeyResponse.HasErrors)
+                    throw new Exception("Response failed from server!");
+
+                response = new EncryptedResponse()
                 {
-                    statusCode = 418;
-                    throw new Exception("Invalid Request!");
-                }
-
-                response = await Task.Run(() => CommandFunctions[serializedRequest!.Command](databaseContext, serializedRequest!, cancellationToken));
-
-                if (response.HasErrors)
-                    throw new Exception("One or more errors have been thrown while executing command!");
+                    EncryptedData = timeKeyResponse.EncryptedData ?? string.Empty
+                };
 
                 statusCode = 200;
             }
 
             catch (Exception ex)
             {
-                List<string> errorAppender = new List<string>();
-
-                errorAppender.Add(Security.EncryptString(string.Concat("Command parser exception: ", ex.Message)));
-
-                if (response.ErrorMessages is not null)
-                    errorAppender.AddRange(response.ErrorMessages);
-
-                response.ErrorMessages = errorAppender.ToArray();
-
-                return StatusCode(statusCode, response);
+                statusCode = 418;
+                return StatusCode(statusCode, timeKeyResponse);
             }
 
             finally
@@ -73,59 +81,106 @@ namespace CheatServer.Controllers
         }
 
 
-        private async Task<Response<TimeKeyResponse>> CreateNewKey(
-            DatabaseContext databaseContext,
-            TimeKeyRequest request,
-            CancellationToken cancellationToken)
-        {
-            Response<TimeKeyResponse> timeKeyResponse = new Response<TimeKeyResponse>();
-            string[] errors = Array.Empty<string>();
+        //private async Task<Response<TimeKeyResponse>> CreateNewKey(
+        //    DatabaseContext databaseContext,
+        //    TimeKeyRequest request,
+        //    CancellationToken cancellationToken)
+        //{
+        //    throw new NotImplementedException();
 
-            try
-            {
-                if (String.IsNullOrEmpty(request.UserId) ||
-                    String.IsNullOrEmpty(request.GameId))
-                    throw new Exception("One or more of the requested feilds were null.");
+        //    Response<TimeKeyResponse>? timeKeyResponse = default;
+        //    string[] errors = Array.Empty<string>();
 
+        //    try
+        //    {
+        //        if (String.IsNullOrEmpty(request.UserId) ||
+        //            String.IsNullOrEmpty(request.GameId))
+        //            throw new Exception("One or more of the requested feilds were null.");
 
-                timeKeyResponse = new Response<TimeKeyResponse>(new TimeKeyResponse()
-                {
+        //        timeKeyResponse = new Response<TimeKeyResponse>(new TimeKeyResponse()
+        //        {
                     
-                });
-            }
+        //        });
+        //    }
 
-            catch (Exception ex)
-            {
-                errors = new string[]
-                {
-                    string.Concat("Message: ", ex.Message)
-                };
+        //    catch (Exception ex)
+        //    {
+        //        errors = new string[]
+        //        {
+        //            string.Concat("Message: ", ex.Message)
+        //        };
 
-                timeKeyResponse = new Response<TimeKeyResponse>(errors);
-            }
+        //        timeKeyResponse = new Response<TimeKeyResponse>(errors);
+        //    }
 
-            return timeKeyResponse;
-        }
+        //    return timeKeyResponse;
+        //}
 
         private async Task<Response<TimeKeyResponse>> RedeemKey(
             DatabaseContext databaseContext,
             TimeKeyRequest request,
             CancellationToken cancellationToken)
         {
-            Response<TimeKeyResponse> timeKeyResponse = new Response<TimeKeyResponse>();
+            Response<TimeKeyResponse>? timeKeyResponse = default;
             string[] errors = Array.Empty<string>();
 
             try
             {
-                if (String.IsNullOrEmpty(request.UserId) ||
+                if (request.UserId == Guid.Empty ||
                     String.IsNullOrEmpty(request.Key))
                     throw new Exception("One or more of the requested feilds were null.");
 
 
+                var userResult = await databaseContext
+                    .Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.UserId == request.UserId, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (userResult is null)
+                    throw new Exception("This user id does not exist!");
+
+                if (!Security.HashPassword(request.UserPassword, out string hashedPassword))
+                    throw new Exception("Failed to hash user password!");
+
+                if (userResult.Password != hashedPassword)
+                    throw new Exception("Incorrect Password!");
+
+                if (!userResult.Active)
+                    throw new Exception("This user has been banned or is no longer an active user!");
+
+                var timeKeyResult = await databaseContext
+                    .TimeKeys
+                    .Include(x => x.CheatBinary)
+                        .ThenInclude(x => x.Game)
+                    .FirstOrDefaultAsync(x => x.Key == request.Key, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (timeKeyResult is null)
+                    throw new Exception("This key does not exist!");
+
+
+                var userCheat = new UserCheat()
+                {
+                    GameId = timeKeyResult.CheatBinary.GameId,
+                    AccessLevelId = timeKeyResult.CheatBinary.AccessLevelId,
+                    UserId = request.UserId,
+                    AuthenticationEndDate = DateTime.UtcNow + TimeSpan.FromDays(timeKeyResult.TimeValue),
+                };
+
+                timeKeyResult.Active = false;
+
+                await databaseContext.AddAsync(userCheat, cancellationToken)
+                    .ConfigureAwait(false);
+
+                int rowsChanged = await databaseContext.SaveChangesAsync(cancellationToken);
+
+                if (rowsChanged != 2)
+                    throw new Exception("Failed to add this key to the database!");
 
                 timeKeyResponse = new Response<TimeKeyResponse>(new TimeKeyResponse()
                 {
-
+                    Key = request.Key
                 });
             }
 
