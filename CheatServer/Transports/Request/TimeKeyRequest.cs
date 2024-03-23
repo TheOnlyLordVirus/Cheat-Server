@@ -1,22 +1,21 @@
-﻿namespace CheatServer.Transports
+﻿namespace CheatServer.Transports;
+
+public enum TimeKeyCommand
 {
-    public enum TimeKeyCommand
-    {
-        Create,
-        Redeem
-    }
+    Create,
+    Redeem
+}
 
-    public class TimeKeyRequest
-    {
-        public TimeKeyCommand Command { get; set; }
+public class TimeKeyRequest
+{
+    public TimeKeyCommand Command { get; set; }
 
-        public Guid UserId { get; set; } = Guid.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
 
-        public string UserPassword { get; set; } = string.Empty;
+    public string UserPassword { get; set; } = string.Empty;
 
-        public string GameId { get; set; } = string.Empty;
+    public string GameId { get; set; } = string.Empty;
 
-        public string Key { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
 
-    }
 }

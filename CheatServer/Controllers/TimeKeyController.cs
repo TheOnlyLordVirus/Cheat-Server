@@ -170,8 +170,7 @@ namespace CheatServer.Controllers
 
                 timeKeyResult.Active = false;
 
-                await databaseContext.AddAsync(userCheat, cancellationToken)
-                    .ConfigureAwait(false);
+                databaseContext.Add(userCheat);
 
                 int rowsChanged = await databaseContext.SaveChangesAsync(cancellationToken);
 

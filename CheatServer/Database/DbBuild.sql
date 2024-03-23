@@ -26,6 +26,7 @@ create table USERS
 create table GAMES
 (
 	ID uuid primary key default (uuid()),
+    GAME_PROCESS_NAME varchar(60) not null,
     GAME_NAME varchar(60) not null,
     GAME_VERSION varchar(30) not null
 );

@@ -12,23 +12,25 @@ namespace CheatServer.Utilitys.Security
         // TODO: add numbers to this, add more chars to each value.
         private static readonly Dictionary<char, string> _substitutionCypherChars = new() 
         {
-            { 'a', "=A" }, { 'b', "e" }, { 'c', "^" },  { 'd', "B" },  { 'e', "R" },
+            { 'a', "=A" }, { 'b', "e" }, { 'c', "^" },  { 'd', "Bsa" },  { 'e', "R" },
             { 'f', "n2" }, { 'g', "f" }, { 'h', "P" },  { 'i', "$" },  { 'j', ">" },
             { 'k', "z32" }, { 'l', "]" }, { 'm', ";" },  { 'n', "d" },  { 'o', "u" },
-            { 'p', "%a" }, { 'q', "," }, { 'r', "|" },  { 's', "F" },  { 't', "m" },
+            { 'p', "%a" }, { 'q', ",ff" }, { 'r', "|" },  { 's', "F" },  { 't', "m" },
             { 'u', "Z43" }, { 'v', "Q" }, { 'w', "}" },  { 'x', "i" },  { 'y', "t" },
-            { 'z', "N00" }, { 'A', "W" }, { 'B', "c" },  { 'C', "-" },  { 'D', "+" },
-            { 'E', "[9a" }, { 'F', "x" }, { 'G', "@" },  { 'H', "~" },  { 'I', "&" },
+            { 'z', "N00" }, { 'A', "W" }, { 'B', "cw" },  { 'C', "-" },  { 'D', "+e" },
+            { 'E', "[9a" }, { 'F', "i7%x" }, { 'G', "@" },  { 'H', "~" },  { 'I', "&" },
             { 'J', "p5" }, { 'K', "_" }, { 'L', "{" },  { 'M', "\'" }, { 'N', "*" },
-            { 'O', "\"\"a" }, { 'P', "G" }, { 'Q', "g" },  { 'R', "<" },  { 'S', "M" },
-            { 'T', "X" }, { 'U', "S" }, { 'V', "y" },  { 'W', "!" },  { 'X', "r" },
-            { 'Y', "J" }, { 'Z', "?" }, { '~', "C" },  { '`', "L" },  { '!', "v" },
-            { '@', "V" }, { '#', "A" }, { '$', "w" },  { '%', ")" },  { '^', "E" },
-            { '&', "a" }, { '*', "q" }, { '(', "o" },  { ')', "b" },  { '_', "Y" },
-            { '-', "`" }, { '+', "h" }, { '=', "\\" }, { '{', "(" },  { '[', ":" },
-            { '}', "T" }, { ']', "j" }, { '|', "H" },  { '\\', "#" }, { ':', "D" },
-            { ';', "K" }, { '"', "/" }, { '\'', "O" }, { '<', "I" },  { ',', "U" },
-            { '>', "k" }, { '.', "s" }, { '?', "l" },  { '/', "." },
+            { 'O', "\"\"a" }, { 'P', "G" }, { 'Q', "g" },  { 'R', "<" },  { 'S', "Mr" },
+            { 'T', "Xd" }, { 'U', "S" }, { 'V', "y" },  { 'W', "!" },  { 'X', "rh" },
+            { 'Y', "J" }, { 'Z', "?" }, { '~', "C" },  { '`', "Lf" },  { '!', "v" },
+            { '@', "V" }, { '#', "Al" }, { '$', "wa" },  { '%', ")7" },  { '^', "E" },
+            { '&', "a" }, { '*', "ql" }, { '(', "o" },  { ')', "b" },  { '_', "Y" },
+            { '-', "`" }, { '+', "hnop" }, { '=', "\\" }, { '{', "(" },  { '[', ":%" },
+            { '}', "jT" }, { ']', "j" }, { '|', "H" },  { '\\', "3d#" }, { ':', "#D" },
+            { ';', "K" }, { '"', "/j" }, { '\'', "hO" }, { '<', "I" },  { ',', "U" },
+            { '>', "kg" }, { '.', "s" }, { '?', "l" },  { '/', "." },
+            { '0', "dX6" }, { '1', "f3" }, { '2', "#k" }, { '3', "l2" }, { '4', "7jnh" }, 
+            { '5', "Vb7" }, { '6', "1!2" }, { '7', "]\\6" }, { '8', "%3d" }, { '9', "h3@3" }
         };
 
         private static readonly Aes _aes = Aes.Create();
@@ -206,7 +208,7 @@ namespace CheatServer.Utilitys.Security
             if (!Internal_HashPassword(password, hashedPassword, out int bytesWritten))
                 return false;
 
-            hashedPassword = hashedPassword.Slice(0, bytesWritten);
+            hashedPassword = hashedPassword[..bytesWritten];
 
             passwordHashAsBase64 = Convert.ToBase64String(hashedPassword);
 
@@ -215,7 +217,6 @@ namespace CheatServer.Utilitys.Security
 
         private static void Internal_SubstitutionCypher(ReadOnlySpan<char> password, Span<char> passwordOutput, out int length)
         {
-            length = password.Length;
             int index = 0;
             for (var i = 0; i < password.Length; i++)
             {

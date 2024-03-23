@@ -11,10 +11,16 @@ namespace CheatServer.Controllers
     [Route("Api/Alpha")]
     public sealed class UserController : ControllerBase
     {
-        private readonly Dictionary<UserCommand, Func<DatabaseContext, UserRequest, CancellationToken, Task<Response<UserResponse>>>> 
+        private delegate Task<Response<UserResponse>> UserCommandDelegate(
+            UserController userController, 
+            DatabaseContext databaseContext, 
+            UserRequest userRequest, 
+            CancellationToken cancellationToken);
+
+        private static readonly Dictionary<UserCommand, UserCommandDelegate> 
             CommandFunctions;
 
-        public UserController()
+        static UserController()
         {
             CommandFunctions = new ()
             {
@@ -47,7 +53,7 @@ namespace CheatServer.Controllers
                     throw new Exception("Failed to decrypt request!");
 
                 userResponse = await CommandFunctions[userRequest!.RequestObject!.UserCommand]
-                    (databaseContext, userRequest!.RequestObject!, cancellationToken);
+                    (this, databaseContext, userRequest!.RequestObject!, cancellationToken);
 
                 if (userResponse.HasErrors)
                     throw new Exception("Response failed from server!");
@@ -81,7 +87,8 @@ namespace CheatServer.Controllers
         }
 
 
-        private async Task<Response<UserResponse>> CreateUser(
+        private static async Task<Response<UserResponse>> CreateUser(
+            UserController controller,
             DatabaseContext databaseContext,
             UserRequest request,
             CancellationToken cancellationToken)
@@ -96,10 +103,10 @@ namespace CheatServer.Controllers
                     String.IsNullOrEmpty(request.Password))
                     throw new Exception("One or more of the requested feilds were null.");
 
-                if (HttpContext.Connection.RemoteIpAddress is null)
+                if (controller.HttpContext.Connection.RemoteIpAddress is null)
                     throw new Exception("Unable to retrieve remote ip address!");
 
-                string ipAddress = HttpContext.Connection.RemoteIpAddress!.ToString();
+                string ipAddress = controller.HttpContext.Connection.RemoteIpAddress!.ToString();
 
                 User? checkEntity = await databaseContext
                     .Users
@@ -133,9 +140,7 @@ namespace CheatServer.Controllers
                     Admin = false
                 };
 
-                await databaseContext
-                    .AddAsync(newUser, cancellationToken)
-                    .ConfigureAwait(false);
+                databaseContext.Add(newUser);
 
                 int savedResults = await databaseContext
                     .SaveChangesAsync(cancellationToken)
@@ -178,7 +183,8 @@ namespace CheatServer.Controllers
             return userResponse;
         }
 
-        private async Task<Response<UserResponse>> AuthenticateUser(
+        private static async Task<Response<UserResponse>> AuthenticateUser(
+            UserController controller,
             DatabaseContext databaseContext,
             UserRequest request,
             CancellationToken cancellationToken)

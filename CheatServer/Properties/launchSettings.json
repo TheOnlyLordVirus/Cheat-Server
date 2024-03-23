@@ -9,12 +9,30 @@
       "applicationUrl": "https://localhost:7179",
       "useSSL": true
     },
+    "CheatServerWithoutSSL": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:7179",
+      "useSSL": false
+    },
     "Docker": {
       "commandName": "Docker",
       "publishAllPorts": true,
       "useSSL": true,
       "applicationUrl": "https://localhost:5000",
       "sslPort": 5000
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "launchUrl": "https://localhost:7179",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7179"
+      },
+      "useSSL": true
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json",
